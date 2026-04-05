@@ -20,20 +20,27 @@ const BOOLEAN_QUESTIONS: Record<string, string> = {
   is_retro: 'Is your game a retro/classic game (pre-2000)?',
 };
 
+interface GameScore {
+  game: Game;
+  score: number;
+}
+
 export class GameEngine {
   private allGames: Game[] = [];
-  private possibleGames: Game[] = [];
+  private gameScores: GameScore[] = [];
   private askedQuestions: Set<string> = new Set();
   private questionCount = 0;
-  private answers: Map<string, boolean> = new Map();
 
   constructor(games: Game[]) {
     this.allGames = games;
-    this.possibleGames = [...games];
+    this.gameScores = games.map(game => ({
+      game,
+      score: 100,
+    }));
   }
 
   getPossibleGamesCount(): number {
-    return this.possibleGames.length;
+    return this.gameScores.filter(gs => gs.score > 20).length;
   }
 
   getQuestionCount(): number {
@@ -41,34 +48,34 @@ export class GameEngine {
   }
 
   getBestQuestion(): Question | null {
-    if (this.possibleGames.length <= 1) return null;
+    const topGames = this.gameScores
+      .filter(gs => gs.score > 20)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 50);
 
-    const allQuestions = this.generateAllQuestions();
+    if (topGames.length <= 1) return null;
+
+    const allQuestions = this.generateAllQuestions(topGames.map(gs => gs.game));
     if (allQuestions.length === 0) return null;
 
     const scoredQuestions = allQuestions.map(q => ({
       question: q,
-      score: this.calculateQuestionScore(q),
+      score: this.calculateQuestionEntropy(q, topGames.map(gs => gs.game)),
     }));
 
-    scoredQuestions.sort((a, b) => {
-      if (Math.abs(a.score - b.score) < 0.01) {
-        return Math.random() - 0.5;
-      }
-      return b.score - a.score;
-    });
+    scoredQuestions.sort((a, b) => b.score - a.score);
 
     return scoredQuestions[0].question;
   }
 
-  private generateAllQuestions(): Question[] {
+  private generateAllQuestions(topGames: Game[]): Question[] {
     const questions: Question[] = [];
 
     for (const [attr, text] of Object.entries(BOOLEAN_QUESTIONS)) {
-      const key = `bool_${attr}_true`;
-      if (!this.askedQuestions.has(key) && !this.askedQuestions.has(`bool_${attr}_false`)) {
-        const yesGames = this.possibleGames.filter(g => g[attr as keyof Game] === true);
-        const noGames = this.possibleGames.filter(g => g[attr as keyof Game] === false);
+      const key = `bool_${attr}`;
+      if (!this.askedQuestions.has(key)) {
+        const yesGames = topGames.filter(g => g[attr as keyof Game] === true);
+        const noGames = topGames.filter(g => g[attr as keyof Game] === false);
 
         if (yesGames.length > 0 && noGames.length > 0) {
           questions.push({
@@ -83,7 +90,7 @@ export class GameEngine {
     }
 
     const genres = new Set<string>();
-    this.possibleGames.forEach(g => {
+    topGames.forEach(g => {
       if (g.primary_genre) genres.add(g.primary_genre);
       if (g.secondary_genre) genres.add(g.secondary_genre);
     });
@@ -91,10 +98,10 @@ export class GameEngine {
     genres.forEach(genre => {
       const key = `genre_${genre}`;
       if (!this.askedQuestions.has(key)) {
-        const matchingGames = this.possibleGames.filter(
+        const matchingGames = topGames.filter(
           g => g.primary_genre === genre || g.secondary_genre === genre
         );
-        if (matchingGames.length > 0 && matchingGames.length < this.possibleGames.length) {
+        if (matchingGames.length > 0 && matchingGames.length < topGames.length) {
           questions.push({
             id: key,
             text: `Is your game's genre ${genre}?`,
@@ -107,15 +114,15 @@ export class GameEngine {
     });
 
     const perspectives = new Set<string>();
-    this.possibleGames.forEach(g => {
+    topGames.forEach(g => {
       if (g.perspective) perspectives.add(g.perspective);
     });
 
     perspectives.forEach(perspective => {
       const key = `perspective_${perspective}`;
       if (!this.askedQuestions.has(key)) {
-        const matchingGames = this.possibleGames.filter(g => g.perspective === perspective);
-        if (matchingGames.length > 0 && matchingGames.length < this.possibleGames.length) {
+        const matchingGames = topGames.filter(g => g.perspective === perspective);
+        if (matchingGames.length > 0 && matchingGames.length < topGames.length) {
           questions.push({
             id: key,
             text: `Is your game played from ${perspective} perspective?`,
@@ -128,15 +135,15 @@ export class GameEngine {
     });
 
     const settings = new Set<string>();
-    this.possibleGames.forEach(g => {
+    topGames.forEach(g => {
       if (g.setting) settings.add(g.setting);
     });
 
     settings.forEach(setting => {
       const key = `setting_${setting}`;
       if (!this.askedQuestions.has(key)) {
-        const matchingGames = this.possibleGames.filter(g => g.setting === setting);
-        if (matchingGames.length > 0 && matchingGames.length < this.possibleGames.length) {
+        const matchingGames = topGames.filter(g => g.setting === setting);
+        if (matchingGames.length > 0 && matchingGames.length < topGames.length) {
           questions.push({
             id: key,
             text: `Is your game set in ${setting}?`,
@@ -149,15 +156,15 @@ export class GameEngine {
     });
 
     const artStyles = new Set<string>();
-    this.possibleGames.forEach(g => {
+    topGames.forEach(g => {
       if (g.art_style) artStyles.add(g.art_style);
     });
 
     artStyles.forEach(style => {
       const key = `art_${style}`;
       if (!this.askedQuestions.has(key)) {
-        const matchingGames = this.possibleGames.filter(g => g.art_style === style);
-        if (matchingGames.length > 0 && matchingGames.length < this.possibleGames.length) {
+        const matchingGames = topGames.filter(g => g.art_style === style);
+        if (matchingGames.length > 0 && matchingGames.length < topGames.length) {
           questions.push({
             id: key,
             text: `Is your game's art style ${style}?`,
@@ -169,35 +176,14 @@ export class GameEngine {
       }
     });
 
-    const platforms = new Set<string>();
-    this.possibleGames.forEach(g => {
-      if (g.platform_type) platforms.add(g.platform_type);
-    });
-
-    platforms.forEach(platform => {
-      const key = `platform_${platform}`;
-      if (!this.askedQuestions.has(key)) {
-        const matchingGames = this.possibleGames.filter(g => g.platform_type === platform);
-        if (matchingGames.length > 0 && matchingGames.length < this.possibleGames.length) {
-          questions.push({
-            id: key,
-            text: `Is your game available on ${platform}?`,
-            attribute: 'platform_type',
-            value: platform,
-            type: 'string',
-          });
-        }
-      }
-    });
-
     return questions;
   }
 
-  private calculateQuestionScore(question: Question): number {
+  private calculateQuestionEntropy(question: Question, topGames: Game[]): number {
     let yesCount = 0;
     let noCount = 0;
 
-    for (const game of this.possibleGames) {
+    for (const game of topGames) {
       if (this.gameMatchesQuestion(game, question)) {
         yesCount++;
       } else {
@@ -205,10 +191,15 @@ export class GameEngine {
       }
     }
 
-    const total = this.possibleGames.length;
-    const balance = Math.min(yesCount, noCount) / total;
+    const total = topGames.length;
+    if (total === 0) return 0;
 
-    return balance;
+    const yesRatio = yesCount / total;
+    const noRatio = noCount / total;
+
+    const entropy = Math.min(yesRatio, noRatio);
+
+    return entropy;
   }
 
   private gameMatchesQuestion(game: Game, question: Question): boolean {
@@ -231,154 +222,58 @@ export class GameEngine {
   answerQuestion(question: Question, answer: boolean): void {
     this.askedQuestions.add(question.id);
     this.questionCount++;
-    this.answers.set(question.id, answer);
 
-    this.possibleGames = this.possibleGames.filter(game => {
-      const matches = this.gameMatchesQuestion(game, question);
-      return answer ? matches : !matches;
-    });
+    for (const gameScore of this.gameScores) {
+      const matches = this.gameMatchesQuestion(gameScore.game, question);
 
-    if (this.possibleGames.length === 0) {
-      this.possibleGames = [...this.allGames];
-      this.recalculateBasedOnAllAnswers();
-    }
-  }
-
-  private recalculateBasedOnAllAnswers(): void {
-    const scoredGames = this.allGames.map(game => ({
-      game,
-      score: this.calculateGameScore(game),
-    }));
-
-    scoredGames.sort((a, b) => {
-      if (Math.abs(b.score - a.score) < 0.01) {
-        return b.game.popularity_score - a.game.popularity_score;
+      if (answer && matches) {
+        gameScore.score += 20;
+      } else if (answer && !matches) {
+        gameScore.score -= 15;
+      } else if (!answer && matches) {
+        gameScore.score -= 15;
+      } else if (!answer && !matches) {
+        gameScore.score += 20;
       }
-      return b.score - a.score;
-    });
 
-    if (scoredGames.length > 0 && scoredGames[0].score > 0) {
-      this.possibleGames = [scoredGames[0].game];
-    } else {
-      this.possibleGames = this.allGames
-        .sort((a, b) => b.popularity_score - a.popularity_score)
-        .slice(0, 5);
-    }
-  }
-
-  private calculateGameScore(game: Game): number {
-    let matchCount = 0;
-    let totalQuestions = 0;
-
-    this.answers.forEach((answer, questionId) => {
-      totalQuestions++;
-
-      const question = this.reconstructQuestion(questionId);
-      if (question) {
-        const gameMatches = this.gameMatchesQuestion(game, question);
-        if ((answer && gameMatches) || (!answer && !gameMatches)) {
-          matchCount++;
-        }
-      }
-    });
-
-    return totalQuestions > 0 ? matchCount / totalQuestions : 0;
-  }
-
-  private reconstructQuestion(questionId: string): Question | null {
-    if (questionId.startsWith('bool_')) {
-      const parts = questionId.split('_');
-      const attr = parts.slice(1, -1).join('_');
-      const value = parts[parts.length - 1] === 'true';
-
-      return {
-        id: questionId,
-        text: BOOLEAN_QUESTIONS[attr] || '',
-        attribute: attr as keyof Game,
-        value,
-        type: 'boolean',
-      };
+      if (gameScore.score < 0) gameScore.score = 0;
+      if (gameScore.score > 200) gameScore.score = 200;
     }
 
-    if (questionId.startsWith('genre_')) {
-      const genre = questionId.substring(6);
-      return {
-        id: questionId,
-        text: `Is your game's genre ${genre}?`,
-        attribute: 'primary_genre',
-        value: genre,
-        type: 'string',
-      };
-    }
-
-    if (questionId.startsWith('perspective_')) {
-      const perspective = questionId.substring(12);
-      return {
-        id: questionId,
-        text: `Is your game played from ${perspective} perspective?`,
-        attribute: 'perspective',
-        value: perspective,
-        type: 'string',
-      };
-    }
-
-    if (questionId.startsWith('setting_')) {
-      const setting = questionId.substring(8);
-      return {
-        id: questionId,
-        text: `Is your game set in ${setting}?`,
-        attribute: 'setting',
-        value: setting,
-        type: 'string',
-      };
-    }
-
-    if (questionId.startsWith('art_')) {
-      const style = questionId.substring(4);
-      return {
-        id: questionId,
-        text: `Is your game's art style ${style}?`,
-        attribute: 'art_style',
-        value: style,
-        type: 'string',
-      };
-    }
-
-    if (questionId.startsWith('platform_')) {
-      const platform = questionId.substring(9);
-      return {
-        id: questionId,
-        text: `Is your game available on ${platform}?`,
-        attribute: 'platform_type',
-        value: platform,
-        type: 'string',
-      };
-    }
-
-    return null;
+    this.gameScores.sort((a, b) => b.score - a.score);
   }
 
   getFinalGuess(): Game | null {
-    if (this.possibleGames.length === 1) {
-      return this.possibleGames[0];
+    const topScored = this.gameScores
+      .filter(gs => gs.score > 0)
+      .sort((a, b) => {
+        if (Math.abs(b.score - a.score) < 5) {
+          return b.game.popularity_score - a.game.popularity_score;
+        }
+        return b.score - a.score;
+      });
+
+    if (topScored.length > 0) {
+      return topScored[0].game;
     }
 
-    if (this.possibleGames.length === 0) {
-      this.recalculateBasedOnAllAnswers();
-    }
-
-    return this.possibleGames.sort((a, b) => b.popularity_score - a.popularity_score)[0] || this.allGames[0];
+    return this.allGames.sort((a, b) => b.popularity_score - a.popularity_score)[0] || null;
   }
 
   getPossibleGames(): Game[] {
-    return [...this.possibleGames];
+    return this.gameScores
+      .filter(gs => gs.score > 20)
+      .sort((a, b) => b.score - a.score)
+      .map(gs => gs.game);
   }
 
   reset(games: Game[]): void {
     this.allGames = games;
-    this.possibleGames = [...games];
+    this.gameScores = games.map(game => ({
+      game,
+      score: 100,
+    }));
     this.askedQuestions.clear();
     this.questionCount = 0;
-    this.answers.clear();
   }
 }

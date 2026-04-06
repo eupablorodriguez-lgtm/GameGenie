@@ -1,116 +1,86 @@
 import { useState, useEffect } from 'react';
+import { Sparkles } from 'lucide-react';
+import { GameEngine } from './lib/gameEngine';
+import { getAllGames, saveGameSession } from './lib/supabase';
+import type { Game, Question } from './types/game';
+
 import { Genie } from './components/Genie';
 import { QuestionCard } from './components/QuestionCard';
 import { GameReveal } from './components/GameReveal';
-import { saveGameSession } from './lib/supabase';
-import { GameEngine } from './lib/gameEngine';
-import type { Game, Question } from './types/game';
-import { Loader2, Sparkles } from 'lucide-react';
-
-type GamePhase = 'loading' | 'intro' | 'playing' | 'guessing' | 'reveal';
 
 function App() {
-  const [phase, setPhase] = useState<GamePhase>('loading');
-  const [gameEngine] = useState<GameEngine>(() => new GameEngine());
+  const [phase, setPhase] = useState<'intro' | 'playing' | 'guessing' | 'reveal'>('intro');
+  const [gameEngine, setGameEngine] = useState<GameEngine | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [guessedGame, setGuessedGame] = useState<Game | null>(null);
   const [startTime, setStartTime] = useState<number>(0);
+  const [allGames, setAllGames] = useState<Game[]>([]);
 
   useEffect(() => {
-    initializeGame();
+    const init = async () => {
+      const games = await getAllGames();
+      setAllGames(games);
+      setGameEngine(new GameEngine(games));
+    };
+    init();
   }, []);
 
-  async function initializeGame() {
-    setPhase('loading');
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setPhase('intro');
-  }
-
-  function startGame() {
+  const startGame = async () => {
+    if (!gameEngine) return;
+    gameEngine.reset();
     setStartTime(Date.now());
     setPhase('playing');
-    askNextQuestion();
-  }
+    const next = await gameEngine.getNextQuestion();
+    if (next && 'is_question' in next) {
+      setCurrentQuestion(next);
+    } else if (next) {
+      // If the first node is already a game, reveal it immediately
+      setGuessedGame(next as Game);
+      setPhase('reveal');
+      await saveGameSession(next.id, gameEngine.getQuestionCount(), true, (Date.now() - startTime) / 1000);
+    }
+  };
 
-  async function askNextQuestion() {
-    const question = await gameEngine.getBestQuestion();
+  const handleAnswer = async (answer: boolean) => {
+    if (!gameEngine) return;
 
-    if (!question) {
-      makeGuess();
+    await gameEngine.answerQuestion(answer);
+    const next = await gameEngine.getNextQuestion();
+
+    if (next === null) {
+      // No more questions, and no game found. This shouldn't happen with a well-formed tree.
+      // For now, we'll assume a failure or try to guess the closest game.
+      // For this implementation, we'll just reset.
+      console.warn("No more questions and no game found. Resetting.");
+      setPhase('intro');
       return;
     }
 
-    setCurrentQuestion(question);
-  }
-
-  async function handleAnswer(answer: boolean) {
-    if (!currentQuestion) return;
-
-    await gameEngine.answerQuestion(currentQuestion, answer);
-
-    const nextQuestion = await gameEngine.getBestQuestion();
-    
-    if (!nextQuestion) {
-      makeGuess();
+    if ('is_question' in next) {
+      setCurrentQuestion(next);
     } else {
-      setCurrentQuestion(nextQuestion);
+      setPhase('guessing');
+      // Simulate thinking time
+      setTimeout(async () => {
+        setGuessedGame(next as Game);
+        setPhase('reveal');
+        await saveGameSession(next.id, gameEngine.getQuestionCount(), true, (Date.now() - startTime) / 1000);
+      }, 2000); // 2 seconds thinking time
     }
-  }
+  };
 
-  async function makeGuess() {
-    setPhase('guessing');
-
-    setTimeout(async () => {
-      const guess = await gameEngine.getFinalGuess();
-      setGuessedGame(guess);
-      setPhase('reveal');
-
-      const duration = Math.floor((Date.now() - startTime) / 1000);
-      if (guess) {
-        saveGameSession(guess.id, gameEngine.getQuestionCount(), true, duration);
-      }
-    }, 2800);
-  }
-
-  function handlePlayAgain() {
-    gameEngine.reset();
-    setCurrentQuestion(null);
-    setGuessedGame(null);
+  const handlePlayAgain = () => {
     setPhase('intro');
-  }
-
-  if (phase === 'loading') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-violet-900 flex items-center justify-center overflow-hidden relative">
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/30 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-600/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }}></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-fuchsia-600/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '0.75s' }}></div>
-        </div>
-
-        <div className="relative flex flex-col items-center gap-8 z-10">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-violet-500 blur-2xl opacity-50 rounded-full"></div>
-            <Loader2 size={80} className="relative text-blue-300 animate-spin drop-shadow-2xl" />
-          </div>
-          <div className="text-center">
-            <p className="text-cyan-300 text-2xl md:text-3xl font-black tracking-wider mb-2">INITIALIZING GENIE...</p>
-            <p className="text-blue-400/70 text-sm font-bold tracking-widest">Channeling psychic energies</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    setGuessedGame(null);
+    setCurrentQuestion(null);
+    if (gameEngine) {
+      gameEngine.reset();
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-violet-900 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-0 right-0 w-2/3 h-2/3 bg-gradient-to-bl from-blue-600/40 to-transparent blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-gradient-to-tr from-violet-600/30 to-transparent blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-fuchsia-600/20 blur-3xl rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
-      </div>
-
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDAgTCA2MCAwIEwgNjAgNjAgTCAwIDYwIFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFmMmU0ZSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-40"></div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-950 text-white font-sans relative overflow-hidden">
+      <div className="absolute inset-0 bg-[url(\'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zz4PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDAgTCA2MCAwIEwgNjAgNjAgTCAwIDYwIFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFmMmU0ZSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaW અપડેટ)Ii8+PC9zdmc+\')] opacity-40"></div>
 
       {[...Array(20)].map((_, i) => (
         <div
@@ -211,7 +181,7 @@ function App() {
               </div>
             )}
 
-            {phase === 'playing' && currentQuestion && (
+            {phase === 'playing' && currentQuestion && gameEngine && (
               <div className="space-y-8 md:space-y-10">
                 <Genie state="thinking" />
                 <QuestionCard
@@ -229,7 +199,7 @@ function App() {
                     <div
                       className="h-full bg-gradient-to-r from-blue-500 via-violet-500 to-fuchsia-500 transition-all duration-500 rounded-full"
                       style={{
-                        width: `${Math.max(5, Math.min(100, (gameEngine.getPossibleGamesCount() / 10) * 100))}%`,
+                        width: `${Math.max(5, Math.min(100, (gameEngine.getPossibleGamesCount() / allGames.length) * 100))}%`,
                       }}
                     ></div>
                   </div>
@@ -248,7 +218,7 @@ function App() {
                 <Genie state="victory" />
                 <GameReveal
                   game={guessedGame}
-                  questionCount={gameEngine.getQuestionCount()}
+                  questionCount={gameEngine ? gameEngine.getQuestionCount() : 0}
                   onPlayAgain={handlePlayAgain}
                 />
               </div>

@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-slate-950 text-white font-sans;
+  }
+
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .gradient-text {
+    background: linear-gradient(to right, #8b5cf6, #ec4899, #ef4444);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
 @layer utilities {
   @keyframes slide-in {
     from {
@@ -116,49 +139,47 @@
   }
 
   .animate-float {
-    animation: float 4s ease-in-out infinite;
+    animation: float 3s ease-in-out infinite;
   }
 
   .animate-glow-pulse {
-    animation: glow-pulse 3s ease-in-out infinite;
+    animation: glow-pulse 2s infinite alternate;
   }
 
   .animate-shimmer {
-    animation: shimmer 3s linear infinite;
+    background: linear-gradient(to right, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
   }
 
   .animate-orbit {
-    animation: orbit 20s linear infinite;
+    animation: orbit 15s linear infinite;
   }
 
   .animate-fadeInUp {
-    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: fadeInUp 0.8s ease-out forwards;
   }
 
   .animate-wave {
-    animation: wave 6s ease-in-out infinite;
+    animation: wave 2s ease-in-out infinite;
   }
 
   .animate-particle-float {
     animation: particle-float 8s ease-in-out infinite;
   }
 
-  .glass-effect {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+  .animate-bounce {
+    animation: bounce 1s infinite;
   }
 
-  .text-shadow-glow {
-    text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
-  }
-
-  .gradient-text {
-    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #8b5cf6, #3b82f6);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: shimmer 3s linear infinite;
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(-5%);
+      animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+      transform: translateY(0);
+      animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
   }
 }

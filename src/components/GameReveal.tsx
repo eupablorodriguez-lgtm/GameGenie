@@ -1,26 +1,13 @@
-import { Sparkles, RotateCcw, Share2, Trophy, Target, Zap } from 'lucide-react';
-import type { Game } from '../types/game';
+import { Sparkles, Check, X } from 'lucide-react';
 
 interface GameRevealProps {
-  game: Game;
+  gameName: string;
   questionCount: number;
-  onPlayAgain: () => void;
+  onGuessCorrect: () => void;
+  onGuessWrong: () => void;
 }
 
-export function GameReveal({ game, questionCount, onPlayAgain }: GameRevealProps) {
-  const handleShare = () => {
-    const text = `🎮 The GENIE read my mind PERFECTLY! I was thinking of "${game.name}" and it guessed it in ${questionCount} questions! Can you challenge the Genie? 🔮`;
-    if (navigator.share) {
-      navigator.share({
-        title: 'GENIE GAME - Mind Reading Challenge',
-        text,
-      });
-    } else {
-      navigator.clipboard.writeText(text);
-      alert('Copied to clipboard! Share your result!');
-    }
-  };
-
+export function GameReveal({ gameName, questionCount, onGuessCorrect, onGuessWrong }: GameRevealProps) {
   return (
     <div className="w-full max-w-5xl mx-auto animate-scale-in">
       <div className="relative">
@@ -53,109 +40,61 @@ export function GameReveal({ game, questionCount, onPlayAgain }: GameRevealProps
               />
             </div>
 
-            <div className="relative glass-effect rounded-xl md:rounded-2xl p-6 md:p-10 mb-6 md:mb-8 border-2 border-yellow-400/40 shadow-2xl">
-              <div className="absolute -top-4 md:-top-5 left-1/2 -translate-x-1/2">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-yellow-400 blur-lg opacity-50"></div>
-                  <Trophy className="relative text-yellow-300 drop-shadow-2xl" size={32} fill="currentColor" />
-                </div>
-              </div>
-
-              <p className="text-cyan-300 text-center text-sm md:text-base mb-4 md:mb-6 uppercase tracking-widest font-black">
-                Your Thought Revealed
+            <div className="relative glass-effect rounded-xl md:rounded-2xl p-6 md:p-10 mb-8 md:mb-10 border-2 border-yellow-400/40 shadow-2xl">
+              <p className="text-cyan-300 text-center text-base md:text-lg mb-4 md:mb-6 uppercase tracking-widest font-black">
+                O jogo era
               </p>
 
-              <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white text-center mb-4 md:mb-5 drop-shadow-2xl leading-tight px-2">
-                {game.name}
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white text-center mb-6 md:mb-8 drop-shadow-2xl leading-tight px-2">
+                {gameName}?
               </h1>
 
-              <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 text-white/90 text-sm md:text-base font-bold">
-                {game.year && (
-                  <span className="glass-effect px-3 py-1.5 rounded-full border border-white/20">{game.year}</span>
-                )}
-                {game.developer && (
-                  <>
-                    <span className="text-blue-400">•</span>
-                    <span className="glass-effect px-3 py-1.5 rounded-full border border-white/20">{game.developer}</span>
-                  </>
-                )}
-                {game.primary_genre && (
-                  <>
-                    <span className="text-violet-400">•</span>
-                    <span className="glass-effect px-3 py-1.5 rounded-full border border-white/20">
-                      {game.primary_genre}
-                    </span>
-                  </>
-                )}
+              <p className="text-center text-cyan-200/80 mb-6 md:mb-8 text-sm md:text-base font-semibold px-4">
+                Fiz {questionCount} {questionCount === 1 ? 'pergunta' : 'perguntas'} para descobrir!
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                <button
+                  onClick={onGuessCorrect}
+                  className="group relative overflow-hidden rounded-xl md:rounded-2xl py-5 md:py-7 px-6 md:px-8 font-black text-lg md:text-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 via-green-500 to-emerald-600"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-all duration-300"></div>
+
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/50 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+
+                  <div className="relative flex items-center justify-center gap-3 text-white drop-shadow-lg">
+                    <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                      <Check size={24} className="md:w-7 md:h-7 stroke-[3]" />
+                    </div>
+                    <span className="uppercase tracking-wider">SIM</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={onGuessWrong}
+                  className="group relative overflow-hidden rounded-xl md:rounded-2xl py-5 md:py-7 px-6 md:px-8 font-black text-lg md:text-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-rose-500 via-red-500 to-rose-600"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-all duration-300"></div>
+
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/50 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+
+                  <div className="relative flex items-center justify-center gap-3 text-white drop-shadow-lg">
+                    <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                      <X size={24} className="md:w-7 md:h-7 stroke-[3]" />
+                    </div>
+                    <span className="uppercase tracking-wider">NÃO</span>
+                  </div>
+                </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 md:gap-5 mb-6 md:mb-10">
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-cyan-500/30 rounded-xl md:rounded-2xl blur-md md:blur-lg group-hover:blur-xl transition-all"></div>
-                <div className="relative glass-effect rounded-xl md:rounded-2xl p-4 md:p-6 border-2 border-blue-400/40 text-center transform group-hover:scale-105 transition-transform">
-                  <Target className="mx-auto mb-2 text-blue-300" size={28} />
-                  <p className="text-blue-200/70 text-xs uppercase font-black mb-1 tracking-widest">Questions</p>
-                  <p className="text-3xl md:text-4xl font-black text-blue-300 drop-shadow-lg">{questionCount}</p>
-                </div>
-              </div>
-
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 rounded-xl md:rounded-2xl blur-md md:blur-lg group-hover:blur-xl transition-all"></div>
-                <div className="relative glass-effect rounded-xl md:rounded-2xl p-4 md:p-6 border-2 border-violet-400/40 text-center transform group-hover:scale-105 transition-transform">
-                  <Zap className="mx-auto mb-2 text-violet-300" size={28} />
-                  <p className="text-violet-200/70 text-xs uppercase font-black mb-1 tracking-widest">Mind Power</p>
-                  <p className="text-3xl md:text-4xl font-black text-violet-300 drop-shadow-lg">∞</p>
-                </div>
-              </div>
-
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/30 to-green-500/30 rounded-xl md:rounded-2xl blur-md md:blur-lg group-hover:blur-xl transition-all"></div>
-                <div className="relative glass-effect rounded-xl md:rounded-2xl p-4 md:p-6 border-2 border-emerald-400/40 text-center transform group-hover:scale-105 transition-transform">
-                  <Trophy className="mx-auto mb-2 text-emerald-300" size={28} />
-                  <p className="text-emerald-200/70 text-xs uppercase font-black mb-1 tracking-widest">Accuracy</p>
-                  <p className="text-3xl md:text-4xl font-black text-emerald-300 drop-shadow-lg">100%</p>
-                </div>
-              </div>
-            </div>
-
-            <p className="text-center text-cyan-200 mb-6 md:mb-10 text-sm md:text-lg font-bold px-4">
-              The Genie's powers remain undefeated. Every thought is transparent.
+            <p className="text-center text-cyan-200/60 text-sm md:text-base font-bold px-4">
+              O Genie está sempre aprendendo e melhorando!
             </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-              <button
-                onClick={onPlayAgain}
-                className="group relative overflow-hidden rounded-xl md:rounded-2xl py-4 md:py-5 px-6 md:px-8 font-black text-base md:text-lg transition-all duration-300 transform hover:scale-105 active:scale-95 uppercase tracking-wider"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500"></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-all duration-300"></div>
-
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/60 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-
-                <div className="relative flex items-center justify-center gap-2 md:gap-3 text-white drop-shadow-lg">
-                  <RotateCcw size={22} />
-                  Challenge Again
-                </div>
-              </button>
-
-              <button
-                onClick={handleShare}
-                className="group relative overflow-hidden rounded-xl md:rounded-2xl py-4 md:py-5 px-6 md:px-8 font-black text-base md:text-lg transition-all duration-300 transform hover:scale-105 active:scale-95 uppercase tracking-wider"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500"></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-all duration-300"></div>
-
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/60 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-
-                <div className="relative flex items-center justify-center gap-2 md:gap-3 text-white drop-shadow-lg">
-                  <Share2 size={22} />
-                  Share Result
-                </div>
-              </button>
-            </div>
           </div>
         </div>
       </div>

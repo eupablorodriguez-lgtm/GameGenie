@@ -1,46 +1,38 @@
 import type { Game, Question } from '../types/game';
 
-const BOOLEAN_QUESTIONS: Record<string, string> = {
-  is_multiplayer: 'Does your game have multiplayer mode?',
-  is_singleplayer: 'Can your game be played solo/singleplayer?',
-  is_competitive: 'Is your game competitive (PvP/ranked)?',
+const QUESTION_TEMPLATES: Record<string, string> = {
+  is_multiplayer: 'Does your game have multiplayer?',
+  is_singleplayer: 'Is your game playable solo?',
+  is_competitive: 'Is your game competitive/PvP?',
   is_open_world: 'Is your game open world?',
-  has_strong_story: 'Does your game have a strong narrative/story?',
+  has_strong_story: 'Does your game have a strong story?',
   has_character_customization: 'Can you customize your character?',
-  has_crafting: 'Does your game have crafting mechanics?',
-  has_building: 'Can you build structures in your game?',
+  has_crafting: 'Does your game have crafting?',
+  has_building: 'Can you build in your game?',
   has_survival_elements: 'Does your game have survival elements?',
-  has_rpg_elements: 'Does your game have RPG elements (leveling, skills, etc)?',
-  has_permadeath: 'Does your game have permadeath/roguelike elements?',
-  has_magic: 'Does your game feature magic/spells?',
-  has_guns: 'Are there guns/firearms in your game?',
-  has_swords: 'Are there swords/melee weapons in your game?',
-  has_vehicles: 'Can you drive/pilot vehicles in your game?',
-  is_indie: 'Is your game an indie game?',
-  is_retro: 'Is your game a retro/classic game (pre-2000)?',
+  has_rpg_elements: 'Does your game have RPG elements?',
+  has_permadeath: 'Does your game have permadeath/roguelike?',
+  has_magic: 'Does your game feature magic?',
+  has_guns: 'Are there guns in your game?',
+  has_swords: 'Are there swords/melee weapons?',
+  has_vehicles: 'Can you drive vehicles?',
+  is_indie: 'Is your game indie?',
+  is_retro: 'Is your game retro/classic?',
 };
-
-interface GameScore {
-  game: Game;
-  score: number;
-}
 
 export class GameEngine {
   private allGames: Game[] = [];
-  private gameScores: GameScore[] = [];
+  private possibleGames: Game[] = [];
   private askedQuestions: Set<string> = new Set();
   private questionCount = 0;
 
   constructor(games: Game[]) {
     this.allGames = games;
-    this.gameScores = games.map(game => ({
-      game,
-      score: 100,
-    }));
+    this.possibleGames = [...games];
   }
 
   getPossibleGamesCount(): number {
-    return this.gameScores.filter(gs => gs.score > 20).length;
+    return this.possibleGames.length;
   }
 
   getQuestionCount(): number {
@@ -48,36 +40,46 @@ export class GameEngine {
   }
 
   getBestQuestion(): Question | null {
-    const topGames = this.gameScores
-      .filter(gs => gs.score > 20)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 50);
+    // If only 1 or fewer games left, make a guess
+    if (this.possibleGames.length <= 1) {
+      return null;
+    }
 
-    if (topGames.length <= 1) return null;
+    // Get all valid questions (not already asked)
+    const validQuestions = this.getValidQuestions();
 
-    const allQuestions = this.generateAllQuestions(topGames.map(gs => gs.game));
-    if (allQuestions.length === 0) return null;
+    if (validQuestions.length === 0) {
+      return null;
+    }
 
-    const scoredQuestions = allQuestions.map(q => ({
+    // Score each question by how well it splits the remaining games
+    const scoredQuestions = validQuestions.map(q => ({
       question: q,
-      score: this.calculateQuestionEntropy(q, topGames.map(gs => gs.game)),
+      score: this.scoreQuestion(q),
     }));
 
+    // Sort by score descending
     scoredQuestions.sort((a, b) => b.score - a.score);
 
-    return scoredQuestions[0].question;
+    return scoredQuestions[0]?.question || null;
   }
 
-  private generateAllQuestions(topGames: Game[]): Question[] {
+  private getValidQuestions(): Question[] {
     const questions: Question[] = [];
 
-    for (const [attr, text] of Object.entries(BOOLEAN_QUESTIONS)) {
+    // Boolean attribute questions
+    for (const [attr, text] of Object.entries(QUESTION_TEMPLATES)) {
       const key = `bool_${attr}`;
       if (!this.askedQuestions.has(key)) {
-        const yesGames = topGames.filter(g => g[attr as keyof Game] === true);
-        const noGames = topGames.filter(g => g[attr as keyof Game] === false);
+        const yesCount = this.possibleGames.filter(
+          g => (g[attr as keyof Game] as boolean) === true
+        ).length;
+        const noCount = this.possibleGames.filter(
+          g => (g[attr as keyof Game] as boolean) === false
+        ).length;
 
-        if (yesGames.length > 0 && noGames.length > 0) {
+        // Only ask if it splits the games (both yes and no answers exist)
+        if (yesCount > 0 && noCount > 0) {
           questions.push({
             id: key,
             text,
@@ -89,8 +91,9 @@ export class GameEngine {
       }
     }
 
+    // Genre questions
     const genres = new Set<string>();
-    topGames.forEach(g => {
+    this.possibleGames.forEach(g => {
       if (g.primary_genre) genres.add(g.primary_genre);
       if (g.secondary_genre) genres.add(g.secondary_genre);
     });
@@ -98,13 +101,14 @@ export class GameEngine {
     genres.forEach(genre => {
       const key = `genre_${genre}`;
       if (!this.askedQuestions.has(key)) {
-        const matchingGames = topGames.filter(
+        const matchCount = this.possibleGames.filter(
           g => g.primary_genre === genre || g.secondary_genre === genre
-        );
-        if (matchingGames.length > 0 && matchingGames.length < topGames.length) {
+        ).length;
+
+        if (matchCount > 0 && matchCount < this.possibleGames.length) {
           questions.push({
             id: key,
-            text: `Is your game's genre ${genre}?`,
+            text: `Is your game's main genre ${genre}?`,
             attribute: 'primary_genre',
             value: genre,
             type: 'string',
@@ -113,19 +117,23 @@ export class GameEngine {
       }
     });
 
+    // Perspective questions
     const perspectives = new Set<string>();
-    topGames.forEach(g => {
+    this.possibleGames.forEach(g => {
       if (g.perspective) perspectives.add(g.perspective);
     });
 
     perspectives.forEach(perspective => {
       const key = `perspective_${perspective}`;
       if (!this.askedQuestions.has(key)) {
-        const matchingGames = topGames.filter(g => g.perspective === perspective);
-        if (matchingGames.length > 0 && matchingGames.length < topGames.length) {
+        const matchCount = this.possibleGames.filter(
+          g => g.perspective === perspective
+        ).length;
+
+        if (matchCount > 0 && matchCount < this.possibleGames.length) {
           questions.push({
             id: key,
-            text: `Is your game played from ${perspective} perspective?`,
+            text: `Is your game played in ${perspective} perspective?`,
             attribute: 'perspective',
             value: perspective,
             type: 'string',
@@ -134,16 +142,20 @@ export class GameEngine {
       }
     });
 
+    // Setting questions
     const settings = new Set<string>();
-    topGames.forEach(g => {
+    this.possibleGames.forEach(g => {
       if (g.setting) settings.add(g.setting);
     });
 
     settings.forEach(setting => {
       const key = `setting_${setting}`;
       if (!this.askedQuestions.has(key)) {
-        const matchingGames = topGames.filter(g => g.setting === setting);
-        if (matchingGames.length > 0 && matchingGames.length < topGames.length) {
+        const matchCount = this.possibleGames.filter(
+          g => g.setting === setting
+        ).length;
+
+        if (matchCount > 0 && matchCount < this.possibleGames.length) {
           questions.push({
             id: key,
             text: `Is your game set in ${setting}?`,
@@ -155,16 +167,20 @@ export class GameEngine {
       }
     });
 
+    // Art style questions
     const artStyles = new Set<string>();
-    topGames.forEach(g => {
+    this.possibleGames.forEach(g => {
       if (g.art_style) artStyles.add(g.art_style);
     });
 
     artStyles.forEach(style => {
       const key = `art_${style}`;
       if (!this.askedQuestions.has(key)) {
-        const matchingGames = topGames.filter(g => g.art_style === style);
-        if (matchingGames.length > 0 && matchingGames.length < topGames.length) {
+        const matchCount = this.possibleGames.filter(
+          g => g.art_style === style
+        ).length;
+
+        if (matchCount > 0 && matchCount < this.possibleGames.length) {
           questions.push({
             id: key,
             text: `Is your game's art style ${style}?`,
@@ -179,11 +195,11 @@ export class GameEngine {
     return questions;
   }
 
-  private calculateQuestionEntropy(question: Question, topGames: Game[]): number {
+  private scoreQuestion(question: Question): number {
     let yesCount = 0;
     let noCount = 0;
 
-    for (const game of topGames) {
+    for (const game of this.possibleGames) {
       if (this.gameMatchesQuestion(game, question)) {
         yesCount++;
       } else {
@@ -191,27 +207,27 @@ export class GameEngine {
       }
     }
 
-    const total = topGames.length;
-    if (total === 0) return 0;
+    // Perfect 50/50 split = score 1.0
+    // Any deviation from 50/50 = lower score
+    const total = this.possibleGames.length;
+    const ratio = Math.min(yesCount, noCount) / total;
 
-    const yesRatio = yesCount / total;
-    const noRatio = noCount / total;
-
-    const entropy = Math.min(yesRatio, noRatio);
-
-    return entropy;
+    return ratio;
   }
 
   private gameMatchesQuestion(game: Game, question: Question): boolean {
     const gameValue = game[question.attribute];
 
     if (question.type === 'boolean') {
-      return gameValue === question.value;
+      return gameValue === true;
     }
 
     if (question.type === 'string') {
       if (question.attribute === 'primary_genre') {
-        return game.primary_genre === question.value || game.secondary_genre === question.value;
+        return (
+          game.primary_genre === question.value ||
+          game.secondary_genre === question.value
+        );
       }
       return gameValue === question.value;
     }
@@ -223,56 +239,40 @@ export class GameEngine {
     this.askedQuestions.add(question.id);
     this.questionCount++;
 
-    for (const gameScore of this.gameScores) {
-      const matches = this.gameMatchesQuestion(gameScore.game, question);
+    // Filter games based on answer
+    this.possibleGames = this.possibleGames.filter(game => {
+      const matches = this.gameMatchesQuestion(game, question);
+      // If answer is YES, keep games that match
+      // If answer is NO, keep games that don't match
+      return answer ? matches : !matches;
+    });
 
-      if (answer && matches) {
-        gameScore.score += 20;
-      } else if (answer && !matches) {
-        gameScore.score -= 15;
-      } else if (!answer && matches) {
-        gameScore.score -= 15;
-      } else if (!answer && !matches) {
-        gameScore.score += 20;
-      }
-
-      if (gameScore.score < 0) gameScore.score = 0;
-      if (gameScore.score > 200) gameScore.score = 200;
+    // Safety: if no games left, reset to all games
+    if (this.possibleGames.length === 0) {
+      this.possibleGames = [...this.allGames];
     }
-
-    this.gameScores.sort((a, b) => b.score - a.score);
   }
 
   getFinalGuess(): Game | null {
-    const topScored = this.gameScores
-      .filter(gs => gs.score > 0)
-      .sort((a, b) => {
-        if (Math.abs(b.score - a.score) < 5) {
-          return b.game.popularity_score - a.game.popularity_score;
-        }
-        return b.score - a.score;
-      });
-
-    if (topScored.length > 0) {
-      return topScored[0].game;
+    if (this.possibleGames.length === 0) {
+      return this.allGames.sort(
+        (a, b) => b.popularity_score - a.popularity_score
+      )[0] || null;
     }
 
-    return this.allGames.sort((a, b) => b.popularity_score - a.popularity_score)[0] || null;
+    // Return the most popular game from remaining possibilities
+    return this.possibleGames.sort(
+      (a, b) => b.popularity_score - a.popularity_score
+    )[0];
   }
 
   getPossibleGames(): Game[] {
-    return this.gameScores
-      .filter(gs => gs.score > 20)
-      .sort((a, b) => b.score - a.score)
-      .map(gs => gs.game);
+    return [...this.possibleGames];
   }
 
   reset(games: Game[]): void {
     this.allGames = games;
-    this.gameScores = games.map(game => ({
-      game,
-      score: 100,
-    }));
+    this.possibleGames = [...games];
     this.askedQuestions.clear();
     this.questionCount = 0;
   }

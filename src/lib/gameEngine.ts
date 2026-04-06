@@ -1,6 +1,5 @@
 import type { Game, Question } from '../types/game';
-import { createClient } from '@supabase/supabase-js';
-
+import { supabase } from './supabase';
 
 interface TreeNode {
   node_id: number;
@@ -23,7 +22,7 @@ export class GameEngine {
       return this.nodeCache.get(nodeId)!;
     }
 
-    const { data, error } = await createClient
+    const { data, error } = await supabase
       .from('decision_tree')
       .select('*')
       .eq('node_id', nodeId)
@@ -69,8 +68,8 @@ export class GameEngine {
   async answerQuestion(question: Question, answer: boolean): Promise<void> {
     this.questionCount++;
 
-    const nextNodeId = answer 
-      ? this.currentNodeId * 2 
+    const nextNodeId = answer
+      ? this.currentNodeId * 2
       : this.currentNodeId * 2 + 1;
 
     this.currentNodeId = nextNodeId;
@@ -80,16 +79,16 @@ export class GameEngine {
     const node = await this.loadNode(this.currentNodeId);
 
     if (!node || !node.game_id) {
-      const fallbackGames = await createClient
+      const { data: fallbackGames } = await supabase
         .from('games')
         .select('*')
         .order('popularity_score', { ascending: false })
         .limit(1);
 
-      return fallbackGames.data?.[0] || null;
+      return fallbackGames?.[0] || null;
     }
 
-    const { data: game } = await createClient
+    const { data: game } = await supabase
       .from('games')
       .select('*')
       .eq('id', node.game_id)

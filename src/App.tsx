@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Genie } from './components/Genie';
 import { QuestionCard } from './components/QuestionCard';
 import { GameReveal } from './components/GameReveal';
-import { getAllGames, saveGameSession } from './lib/supabase';
+import { saveGameSession } from './lib/supabase';
 import { GameEngine } from './lib/gameEngine';
 import type { Game, Question } from './types/game';
 import { Loader2, Sparkles } from 'lucide-react';
@@ -11,7 +11,7 @@ type GamePhase = 'loading' | 'intro' | 'playing' | 'guessing' | 'reveal';
 
 function App() {
   const [phase, setPhase] = useState<GamePhase>('loading');
-  const [gameEngine, setGameEngine] = useState<GameEngine | null>(null);
+  const [gameEngine] = useState<GameEngine>(() => new GameEngine());
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [guessedGame, setGuessedGame] = useState<Game | null>(null);
   const [startTime, setStartTime] = useState<number>(0);
@@ -22,32 +22,20 @@ function App() {
 
   async function initializeGame() {
     setPhase('loading');
-    const games = await getAllGames();
-
-    if (games.length === 0) {
-      console.error('No games found in database');
-      return;
-    }
-
-    const engine = new GameEngine(games);
-    setGameEngine(engine);
+    await new Promise(resolve => setTimeout(resolve, 800));
     setPhase('intro');
   }
 
   function startGame() {
-    if (!gameEngine) return;
-
     setStartTime(Date.now());
     setPhase('playing');
     askNextQuestion();
   }
 
-  function askNextQuestion() {
-    if (!gameEngine) return;
+  async function askNextQuestion() {
+    const question = await gameEngine.getBestQuestion();
 
-    const question = gameEngine.getBestQuestion();
-
-    if (!question || gameEngine.getPossibleGamesCount() <= 1) {
+    if (!question) {
       makeGuess();
       return;
     }
@@ -55,25 +43,25 @@ function App() {
     setCurrentQuestion(question);
   }
 
-  function handleAnswer(answer: boolean) {
-    if (!gameEngine || !currentQuestion) return;
+  async function handleAnswer(answer: boolean) {
+    if (!currentQuestion) return;
 
-    gameEngine.answerQuestion(currentQuestion, answer);
+    await gameEngine.answerQuestion(currentQuestion, answer);
 
-    if (gameEngine.getPossibleGamesCount() <= 1) {
+    const nextQuestion = await gameEngine.getBestQuestion();
+    
+    if (!nextQuestion) {
       makeGuess();
     } else {
-      askNextQuestion();
+      setCurrentQuestion(nextQuestion);
     }
   }
 
-  function makeGuess() {
-    if (!gameEngine) return;
-
+  async function makeGuess() {
     setPhase('guessing');
 
-    setTimeout(() => {
-      const guess = gameEngine.getFinalGuess();
+    setTimeout(async () => {
+      const guess = await gameEngine.getFinalGuess();
       setGuessedGame(guess);
       setPhase('reveal');
 
@@ -85,17 +73,10 @@ function App() {
   }
 
   function handlePlayAgain() {
-    if (!gameEngine) {
-      initializeGame();
-      return;
-    }
-
-    getAllGames().then(games => {
-      gameEngine.reset(games);
-      setCurrentQuestion(null);
-      setGuessedGame(null);
-      setPhase('intro');
-    });
+    gameEngine.reset();
+    setCurrentQuestion(null);
+    setGuessedGame(null);
+    setPhase('intro');
   }
 
   if (phase === 'loading') {
@@ -236,25 +217,23 @@ function App() {
                 <QuestionCard
                   question={currentQuestion}
                   onAnswer={handleAnswer}
-                  questionNumber={gameEngine?.getQuestionCount() || 1}
+                  questionNumber={gameEngine.getQuestionCount() + 1}
                 />
 
-                {gameEngine && (
-                  <div className="text-center space-y-3">
-                    <p className="text-cyan-300 font-black text-lg md:text-xl">
-                      <span className="text-blue-400 text-2xl md:text-3xl font-black">{gameEngine.getPossibleGamesCount()}</span>{' '}
-                      Games Remaining
-                    </p>
-                    <div className="w-full max-w-2xl mx-auto h-1.5 md:h-2 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
-                      <div
-                        className="h-full bg-gradient-to-r from-blue-500 via-violet-500 to-fuchsia-500 transition-all duration-500 rounded-full"
-                        style={{
-                          width: `${Math.max(5, Math.min(100, (gameEngine.getPossibleGamesCount() / 150) * 100))}%`,
-                        }}
-                      ></div>
-                    </div>
+                <div className="text-center space-y-3">
+                  <p className="text-cyan-300 font-black text-lg md:text-xl">
+                    <span className="text-blue-400 text-2xl md:text-3xl font-black">{gameEngine.getPossibleGamesCount()}</span>{' '}
+                    Games Remaining
+                  </p>
+                  <div className="w-full max-w-2xl mx-auto h-1.5 md:h-2 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 via-violet-500 to-fuchsia-500 transition-all duration-500 rounded-full"
+                      style={{
+                        width: `${Math.max(5, Math.min(100, (gameEngine.getPossibleGamesCount() / 10) * 100))}%`,
+                      }}
+                    ></div>
                   </div>
-                )}
+                </div>
               </div>
             )}
 
@@ -269,7 +248,7 @@ function App() {
                 <Genie state="victory" />
                 <GameReveal
                   game={guessedGame}
-                  questionCount={gameEngine?.getQuestionCount() || 0}
+                  questionCount={gameEngine.getQuestionCount()}
                   onPlayAgain={handlePlayAgain}
                 />
               </div>

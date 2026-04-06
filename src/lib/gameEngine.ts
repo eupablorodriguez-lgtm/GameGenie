@@ -1,7 +1,7 @@
-import type { Game, Question } from '../types/game';
 import { supabase } from './supabase';
+import type { Game, Question } from '../types/game';
 
-interface TreeNode {
+interface DecisionTreeNode {
   node_id: number;
   text: string;
   is_question: boolean;
@@ -9,101 +9,106 @@ interface TreeNode {
 }
 
 export class GameEngine {
-  private currentNodeId: number = 1;
-  private questionCount: number = 0;
-  private nodeCache: Map<number, TreeNode> = new Map();
+  private currentNodeId: number;
+  private questionCount: number;
+  private nodeCache: Map<number, DecisionTreeNode>;
+  private possibleGames: Game[];
+  private allGames: Game[];
 
-  constructor() {
-    this.reset();
+  constructor(allGames: Game[]) {
+    this.currentNodeId = 1;
+    this.questionCount = 0;
+    this.nodeCache = new Map();
+    this.allGames = allGames;
+    this.possibleGames = allGames; // Initially, all games are possible
   }
 
-  async loadNode(nodeId: number): Promise<TreeNode | null> {
-    if (this.nodeCache.has(nodeId)) {
-      return this.nodeCache.get(nodeId)!;
+  async getNextQuestion(): Promise<Question | Game | null> {
+    if (this.possibleGames.length === 0) {
+      return null; // No more possible games
     }
 
-    const { data, error } = await supabase
-      .from('decision_tree')
-      .select('*')
-      .eq('node_id', nodeId)
-      .maybeSingle();
-
-    if (error || !data) {
-      console.error('Error loading node:', error);
-      return null;
+    // If only one game remains, guess it
+    if (this.possibleGames.length === 1) {
+      const finalGame = this.possibleGames[0];
+      const node: DecisionTreeNode = {
+        node_id: -1, // Sentinel value for a guessed game
+        text: finalGame.name,
+        is_question: false,
+        game_id: finalGame.id,
+      };
+      return node as Game; // Return the game directly
     }
 
-    this.nodeCache.set(nodeId, data);
-    return data;
+    let node = this.nodeCache.get(this.currentNodeId);
+    if (!node) {
+      const { data, error } = await supabase
+        .from<DecisionTreeNode>('decision_tree')
+        .select('*')
+        .eq('node_id', this.currentNodeId)
+        .single();
+
+      if (error || !data) {
+        console.error('Error fetching decision tree node:', error);
+        return null; // Or handle error appropriately
+      }
+      node = data;
+      this.nodeCache.set(this.currentNodeId, node);
+    }
+
+    if (!node.is_question) {
+      // If it's a leaf node, it's a guessed game
+      return this.allGames.find(game => game.id === node!.game_id) || null;
+    }
+
+    return node as Question;
+  }
+
+  async answerQuestion(answer: boolean): Promise<void> {
+    this.questionCount++;
+    const currentNode = this.nodeCache.get(this.currentNodeId);
+
+    if (!currentNode || !currentNode.is_question) {
+      console.error('Attempted to answer a non-question node or missing node.');
+      return;
+    }
+
+    // Update currentNodeId based on the answer
+    if (answer) {
+      this.currentNodeId = this.currentNodeId * 2;
+    } else {
+      this.currentNodeId = this.currentNodeId * 2 + 1;
+    }
+
+    // Filter possible games based on the answer to the current question
+    // This is a simplified filtering. A more robust solution would involve
+    // mapping questions to game characteristics and filtering based on those.
+    // For now, we'll assume the decision tree guides us directly.
+    // If the decision tree leads to a game, that game becomes the only possible game.
+    const nextQuestionOrGame = await this.getNextQuestion();
+    if (nextQuestionOrGame && !('is_question' in nextQuestionOrGame)) {
+      this.possibleGames = [nextQuestionOrGame as Game];
+    } else if (nextQuestionOrGame === null) {
+      this.possibleGames = []; // No path found
+    } else {
+      // If it's still a question, we don't filter possible games at this stage
+      // The decision tree structure implicitly handles the filtering by guiding to the next node.
+      // For a more explicit filtering, we'd need a more complex characteristic mapping.
+    }
   }
 
   getPossibleGamesCount(): number {
-    return Math.max(1, 10 - this.questionCount);
+    return this.possibleGames.length;
   }
 
   getQuestionCount(): number {
     return this.questionCount;
   }
 
-  async getBestQuestion(): Promise<Question | null> {
-    const node = await this.loadNode(this.currentNodeId);
-
-    if (!node) {
-      return null;
-    }
-
-    if (!node.is_question) {
-      return null;
-    }
-
-    return {
-      id: `node_${node.node_id}`,
-      text: node.text,
-      attribute: 'id' as any,
-      value: true,
-      type: 'boolean',
-    };
-  }
-
-  async answerQuestion(question: Question, answer: boolean): Promise<void> {
-    this.questionCount++;
-
-    const nextNodeId = answer
-      ? this.currentNodeId * 2
-      : this.currentNodeId * 2 + 1;
-
-    this.currentNodeId = nextNodeId;
-  }
-
-  async getFinalGuess(): Promise<Game | null> {
-    const node = await this.loadNode(this.currentNodeId);
-
-    if (!node || !node.game_id) {
-      const { data: fallbackGames } = await supabase
-        .from('games')
-        .select('*')
-        .order('popularity_score', { ascending: false })
-        .limit(1);
-
-      return fallbackGames?.[0] || null;
-    }
-
-    const { data: game } = await supabase
-      .from('games')
-      .select('*')
-      .eq('id', node.game_id)
-      .maybeSingle();
-
-    return game;
-  }
-
-  getPossibleGames(): Game[] {
-    return [];
-  }
-
   reset(): void {
     this.currentNodeId = 1;
     this.questionCount = 0;
     this.nodeCache.clear();
+    this.possibleGames = this.allGames; // Reset possible games to all games
   }
 }

@@ -1,46 +1,40 @@
 export interface Game {
   id: string;
   name: string;
-  year: number | null;
-  developer: string | null;
-  primary_genre: string;
-  secondary_genre: string | null;
-  is_multiplayer: boolean;
-  is_singleplayer: boolean;
-  is_competitive: boolean;
-  is_open_world: boolean;
-  has_strong_story: boolean;
-  has_character_customization: boolean;
-  has_crafting: boolean;
-  has_building: boolean;
-  has_survival_elements: boolean;
-  has_rpg_elements: boolean;
-  has_permadeath: boolean;
-  perspective: string | null;
-  art_style: string | null;
-  setting: string | null;
-  has_magic: boolean;
-  has_guns: boolean;
-  has_swords: boolean;
-  has_vehicles: boolean;
-  platform_type: string | null;
-  is_indie: boolean;
-  is_retro: boolean;
-  popularity_score: number;
+  year?: number;
+  developer?: string;
+  publisher?: string;
+  primary_genre?: string;
+  secondary_genre?: string;
+  platform_pc?: boolean;
+  platform_console?: boolean;
+  platform_mobile?: boolean;
+  is_multiplayer?: boolean;
+  is_singleplayer?: boolean;
+  is_open_world?: boolean;
+  has_rpg_elements?: boolean;
+  has_building_mechanics?: boolean;
+  is_battle_royale?: boolean;
+  is_moba?: boolean;
+  is_fps?: boolean;
+  is_tps?: boolean;
+  is_fantasy?: boolean;
+  is_sci_fi?: boolean;
+  is_horror?: boolean;
+  is_puzzle?: boolean;
+  is_simulation?: boolean;
+  is_sports?: boolean;
+  is_strategy?: boolean;
+  is_adventure?: boolean;
+  is_action?: boolean;
+  is_indie?: boolean;
+  popularity_score?: number;
+  created_at?: string;
 }
 
 export interface Question {
-  id: string;
+  node_id: number;
   text: string;
-  attribute: keyof Game;
-  value: boolean | string | number;
-  type: 'boolean' | 'string' | 'number';
-}
-
-export interface GameState {
-  possibleGames: Game[];
-  askedQuestions: Question[];
-  currentQuestion: Question | null;
-  guessedGame: Game | null;
-  questionCount: number;
+  is_question: boolean;
+  game_id: string | null;
 }

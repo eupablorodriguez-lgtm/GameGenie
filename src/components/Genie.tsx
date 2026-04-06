@@ -15,7 +15,7 @@ export function Genie({ state, message }: GenieProps) {
               key={i}
               className="absolute top-1/2 left-1/2 w-2 h-2 md:w-3 md:h-3 rounded-full bg-gradient-to-r from-blue-400 to-violet-400"
               style={{
-                transform: `rotate(${i * 30}deg) translateY(-100px) translateY(${window.innerWidth < 768 ? '-20px' : '0px'})`,
+                transform: `rotate(${i * 30}deg) translateY(-100px)`,
                 animation: `orbit ${15 + i}s linear infinite`,
                 animationDelay: `${i * 0.5}s`,
               }}
@@ -57,7 +57,7 @@ export function Genie({ state, message }: GenieProps) {
                     style={{
                       top: '50%',
                       left: '50%',
-                      transform: `rotate(${i * 45}deg) translateY(${window.innerWidth < 768 ? '-80px' : '-95px'})`,
+                      transform: `rotate(${i * 45}deg) translateY(-95px)`,
                       animationDelay: `${i * 0.1}s`,
                     }}
                   />

@@ -1,5 +1,5 @@
 import type { Game, Question } from '../types/game';
-import { Bolt Database } from './supabase';
+import { Supabase } from './supabase';
 
 interface TreeNode {
   node_id: number;
@@ -22,7 +22,7 @@ export class GameEngine {
       return this.nodeCache.get(nodeId)!;
     }
 
-    const { data, error } = await Bolt Database
+    const { data, error } = await Supabase
       .from('decision_tree')
       .select('*')
       .eq('node_id', nodeId)
@@ -79,7 +79,7 @@ export class GameEngine {
     const node = await this.loadNode(this.currentNodeId);
 
     if (!node || !node.game_id) {
-      const fallbackGames = await Bolt Database
+      const fallbackGames = await Supabase
         .from('games')
         .select('*')
         .order('popularity_score', { ascending: false })
@@ -88,7 +88,7 @@ export class GameEngine {
       return fallbackGames.data?.[0] || null;
     }
 
-    const { data: game } = await Bolt Database
+    const { data: game } = await Supabase
       .from('games')
       .select('*')
       .eq('id', node.game_id)

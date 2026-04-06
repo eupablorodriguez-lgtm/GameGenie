@@ -6,6 +6,21 @@ interface GenieProps {
 }
 
 export function Genie({ state, message }: GenieProps) {
+  const getDefaultMessage = (state: string): string => {
+    switch (state) {
+      case 'idle':
+        return 'I am the GENIE. Think of ANY game. I will read your mind with absolute precision.';
+      case 'thinking':
+        return 'Your thoughts become clear... The patterns emerge... I see it all...';
+      case 'guessing':
+        return 'The answer crystallizes... Your mind reveals the truth!';
+      case 'victory':
+        return 'PERFECTION! I have read your thoughts flawlessly! The Genie NEVER fails!';
+      default:
+        return 'Prepare to witness true mind reading...';
+    }
+  };
+
   return (
     <div className="flex flex-col items-center gap-6 md:gap-8 mb-6 md:mb-10">
       <div className="relative">
@@ -118,19 +133,4 @@ export function Genie({ state, message }: GenieProps) {
       </div>
     </div>
   );
-}
-
-function getDefaultMessage(state: string): string {
-  switch (state) {
-    case 'idle':
-      return 'I am the GENIE. Think of ANY game. I will read your mind with absolute precision.';
-    case 'thinking':
-      return 'Your thoughts become clear... The patterns emerge... I see it all...';
-    case 'guessing':
-      return 'The answer crystallizes... Your mind reveals the truth!';
-    case 'victory':
-      return 'PERFECTION! I have read your thoughts flawlessly! The Genie NEVER fails!';
-    default:
-      return 'Prepare to witness true mind reading...';
-  }
 }

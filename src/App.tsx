@@ -1,28 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { GameEngine } from './lib/gameEngine';
-import { getAllGames, saveGameSession } from './lib/supabase';
-import type { Game, Question } from './types/game';
+import type { Question } from './types/game';
 
 import { Genie } from './components/Genie';
 import { QuestionCard } from './components/QuestionCard';
 import { GameReveal } from './components/GameReveal';
+import { LearnForm } from './components/LearnForm';
 
 function App() {
-  const [phase, setPhase] = useState<'intro' | 'playing' | 'guessing' | 'reveal'>('intro');
+  const [phase, setPhase] = useState<'intro' | 'playing' | 'guessing' | 'reveal' | 'learning'>('intro');
   const [gameEngine, setGameEngine] = useState<GameEngine | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-  const [guessedGame, setGuessedGame] = useState<Game | null>(null);
+  const [guessedGame, setGuessedGame] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<number>(0);
-  const [allGames, setAllGames] = useState<Game[]>([]);
 
   useEffect(() => {
-    const init = async () => {
-      const games = await getAllGames();
-      setAllGames(games);
-      setGameEngine(new GameEngine(games));
-    };
-    init();
+    setGameEngine(new GameEngine());
   }, []);
 
   const startGame = async () => {
@@ -31,13 +25,13 @@ function App() {
     setStartTime(Date.now());
     setPhase('playing');
     const next = await gameEngine.getNextQuestion();
+
     if (next && 'is_question' in next) {
       setCurrentQuestion(next);
     } else if (next) {
-      // If the first node is already a game, reveal it immediately
-      setGuessedGame(next as Game);
-      setPhase('reveal');
-      await saveGameSession(next.id, gameEngine.getQuestionCount(), true, (Date.now() - startTime) / 1000);
+      setGuessedGame(next.name);
+      setPhase('guessing');
+      setTimeout(() => setPhase('reveal'), 2000);
     }
   };
 
@@ -48,10 +42,7 @@ function App() {
     const next = await gameEngine.getNextQuestion();
 
     if (next === null) {
-      // No more questions, and no game found. This shouldn't happen with a well-formed tree.
-      // For now, we'll assume a failure or try to guess the closest game.
-      // For this implementation, we'll just reset.
-      console.warn("No more questions and no game found. Resetting.");
+      console.warn("Nenhum nó encontrado");
       setPhase('intro');
       return;
     }
@@ -60,16 +51,18 @@ function App() {
       setCurrentQuestion(next);
     } else {
       setPhase('guessing');
-      // Simulate thinking time
-      setTimeout(async () => {
-        setGuessedGame(next as Game);
+      setTimeout(() => {
+        setGuessedGame(next.name);
         setPhase('reveal');
-        await saveGameSession(next.id, gameEngine.getQuestionCount(), true, (Date.now() - startTime) / 1000);
-      }, 2000); // 2 seconds thinking time
+      }, 2000);
     }
   };
 
-  const handlePlayAgain = () => {
+  const handleGuessWrong = () => {
+    setPhase('learning');
+  };
+
+  const handleGuessCorrect = () => {
     setPhase('intro');
     setGuessedGame(null);
     setCurrentQuestion(null);
@@ -78,9 +71,20 @@ function App() {
     }
   };
 
+  const handleLearnSubmit = async (correctGame: string, characteristic: string) => {
+    if (!gameEngine || !guessedGame) return;
+
+    await gameEngine.learnNewGame(correctGame, guessedGame, characteristic);
+
+    setPhase('intro');
+    setGuessedGame(null);
+    setCurrentQuestion(null);
+    gameEngine.reset();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-950 text-white font-sans relative overflow-hidden">
-      <div className="absolute inset-0 bg-[url(\'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zz4PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDAgTCA2MCAwIEwgNjAgNjAgTCAwIDYwIFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFmMmU0ZSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjaWdyZSApIi8+PC9zdmc+\')] opacity-40"></div>
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDAgTCA2MCAwIEwgNjAgNjAgTCAwIDYwIFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFmMmU0ZSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-40"></div>
 
       {[...Array(20)].map((_, i) => (
         <div
@@ -189,21 +193,6 @@ function App() {
                   onAnswer={handleAnswer}
                   questionNumber={gameEngine.getQuestionCount() + 1}
                 />
-
-                <div className="text-center space-y-3">
-                  <p className="text-cyan-300 font-black text-lg md:text-xl">
-                    <span className="text-blue-400 text-2xl md:text-3xl font-black">{gameEngine.getPossibleGamesCount()}</span>{' '}
-                    Games Remaining
-                  </p>
-                  <div className="w-full max-w-2xl mx-auto h-1.5 md:h-2 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
-                    <div
-                      className="h-full bg-gradient-to-r from-blue-500 via-violet-500 to-fuchsia-500 transition-all duration-500 rounded-full"
-                      style={{
-                        width: `${Math.max(5, Math.min(100, (gameEngine.getPossibleGamesCount() / allGames.length) * 100))}%`,
-                      }}
-                    ></div>
-                  </div>
-                </div>
               </div>
             )}
 
@@ -213,13 +202,24 @@ function App() {
               </div>
             )}
 
-            {phase === 'reveal' && guessedGame && (
+            {phase === 'reveal' && guessedGame && gameEngine && (
               <div className="space-y-8 md:space-y-10">
                 <Genie state="victory" />
                 <GameReveal
-                  game={guessedGame}
-                  questionCount={gameEngine ? gameEngine.getQuestionCount() : 0}
-                  onPlayAgain={handlePlayAgain}
+                  gameName={guessedGame}
+                  questionCount={gameEngine.getQuestionCount()}
+                  onGuessCorrect={handleGuessCorrect}
+                  onGuessWrong={handleGuessWrong}
+                />
+              </div>
+            )}
+
+            {phase === 'learning' && guessedGame && (
+              <div className="space-y-8 md:space-y-10">
+                <Genie state="idle" message="Teach me! I will never forget..." />
+                <LearnForm
+                  wrongGame={guessedGame}
+                  onSubmit={handleLearnSubmit}
                 />
               </div>
             )}

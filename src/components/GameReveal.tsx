@@ -43,11 +43,11 @@ export function GameReveal({ game, questionCount, onPlayAgain }: GameRevealProps
 
           <div className="relative">
             <div className="flex items-center justify-center gap-3 md:gap-5 mb-6 md:mb-10">
-              <Sparkles className="text-yellow-300 animate-bounce drop-shadow-2xl" size={window.innerWidth < 768 ? 36 : 48} fill="currentColor" />
+              <Sparkles className="text-yellow-300 animate-bounce drop-shadow-2xl" size={36} fill="currentColor" />
               <h2 className="text-4xl md:text-5xl font-black gradient-text text-center drop-shadow-2xl">MIND READ!</h2>
               <Sparkles
                 className="text-yellow-300 animate-bounce drop-shadow-2xl"
-                size={window.innerWidth < 768 ? 36 : 48}
+                size={36}
                 fill="currentColor"
                 style={{ animationDelay: '0.2s' }}
               />
@@ -57,7 +57,7 @@ export function GameReveal({ game, questionCount, onPlayAgain }: GameRevealProps
               <div className="absolute -top-4 md:-top-5 left-1/2 -translate-x-1/2">
                 <div className="relative">
                   <div className="absolute inset-0 bg-yellow-400 blur-lg opacity-50"></div>
-                  <Trophy className="relative text-yellow-300 drop-shadow-2xl" size={window.innerWidth < 768 ? 32 : 40} fill="currentColor" />
+                  <Trophy className="relative text-yellow-300 drop-shadow-2xl" size={32} fill="currentColor" />
                 </div>
               </div>
 
@@ -94,7 +94,7 @@ export function GameReveal({ game, questionCount, onPlayAgain }: GameRevealProps
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-cyan-500/30 rounded-xl md:rounded-2xl blur-md md:blur-lg group-hover:blur-xl transition-all"></div>
                 <div className="relative glass-effect rounded-xl md:rounded-2xl p-4 md:p-6 border-2 border-blue-400/40 text-center transform group-hover:scale-105 transition-transform">
-                  <Target className="mx-auto mb-2 text-blue-300" size={window.innerWidth < 768 ? 28 : 36} />
+                  <Target className="mx-auto mb-2 text-blue-300" size={28} />
                   <p className="text-blue-200/70 text-xs uppercase font-black mb-1 tracking-widest">Questions</p>
                   <p className="text-3xl md:text-4xl font-black text-blue-300 drop-shadow-lg">{questionCount}</p>
                 </div>
@@ -103,7 +103,7 @@ export function GameReveal({ game, questionCount, onPlayAgain }: GameRevealProps
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 rounded-xl md:rounded-2xl blur-md md:blur-lg group-hover:blur-xl transition-all"></div>
                 <div className="relative glass-effect rounded-xl md:rounded-2xl p-4 md:p-6 border-2 border-violet-400/40 text-center transform group-hover:scale-105 transition-transform">
-                  <Zap className="mx-auto mb-2 text-violet-300" size={window.innerWidth < 768 ? 28 : 36} />
+                  <Zap className="mx-auto mb-2 text-violet-300" size={28} />
                   <p className="text-violet-200/70 text-xs uppercase font-black mb-1 tracking-widest">Mind Power</p>
                   <p className="text-3xl md:text-4xl font-black text-violet-300 drop-shadow-lg">∞</p>
                 </div>
@@ -112,7 +112,7 @@ export function GameReveal({ game, questionCount, onPlayAgain }: GameRevealProps
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/30 to-green-500/30 rounded-xl md:rounded-2xl blur-md md:blur-lg group-hover:blur-xl transition-all"></div>
                 <div className="relative glass-effect rounded-xl md:rounded-2xl p-4 md:p-6 border-2 border-emerald-400/40 text-center transform group-hover:scale-105 transition-transform">
-                  <Trophy className="mx-auto mb-2 text-emerald-300" size={window.innerWidth < 768 ? 28 : 36} />
+                  <Trophy className="mx-auto mb-2 text-emerald-300" size={28} />
                   <p className="text-emerald-200/70 text-xs uppercase font-black mb-1 tracking-widest">Accuracy</p>
                   <p className="text-3xl md:text-4xl font-black text-emerald-300 drop-shadow-lg">100%</p>
                 </div>
@@ -135,7 +135,7 @@ export function GameReveal({ game, questionCount, onPlayAgain }: GameRevealProps
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/60 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
 
                 <div className="relative flex items-center justify-center gap-2 md:gap-3 text-white drop-shadow-lg">
-                  <RotateCcw size={22} className="md:w-6 md:h-6" />
+                  <RotateCcw size={22} />
                   Challenge Again
                 </div>
               </button>
@@ -151,7 +151,7 @@ export function GameReveal({ game, questionCount, onPlayAgain }: GameRevealProps
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/60 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
 
                 <div className="relative flex items-center justify-center gap-2 md:gap-3 text-white drop-shadow-lg">
-                  <Share2 size={22} className="md:w-6 md:h-6" />
+                  <Share2 size={22} />
                   Share Result
                 </div>
               </button>

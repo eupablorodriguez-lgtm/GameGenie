@@ -1,5 +1,6 @@
 import { Check, X } from 'lucide-react';
 import type { Question } from '../types/game';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface QuestionCardProps {
   question: Question;
@@ -8,6 +9,8 @@ interface QuestionCardProps {
 }
 
 export function QuestionCard({ question, onAnswer, questionNumber }: QuestionCardProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="w-full max-w-4xl mx-auto animate-fadeInUp">
       <div className="relative">
@@ -45,7 +48,7 @@ export function QuestionCard({ question, onAnswer, questionNumber }: QuestionCar
                 <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
                   <Check size={24} className="md:w-7 md:h-7 stroke-[3]" />
                 </div>
-                <span className="uppercase tracking-wider">YES</span>
+                <span className="uppercase tracking-wider">{t.question.yes}</span>
               </div>
             </button>
 
@@ -64,7 +67,7 @@ export function QuestionCard({ question, onAnswer, questionNumber }: QuestionCar
                 <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
                   <X size={24} className="md:w-7 md:h-7 stroke-[3]" />
                 </div>
-                <span className="uppercase tracking-wider">NO</span>
+                <span className="uppercase tracking-wider">{t.question.no}</span>
               </div>
             </button>
           </div>

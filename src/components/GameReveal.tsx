@@ -1,4 +1,5 @@
 import { Sparkles, Check, X } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface GameRevealProps {
   gameName: string;
@@ -8,6 +9,12 @@ interface GameRevealProps {
 }
 
 export function GameReveal({ gameName, questionCount, onGuessCorrect, onGuessWrong }: GameRevealProps) {
+  const { t, interpolate } = useLanguage();
+
+  const questionText = questionCount === 1
+    ? interpolate(t.reveal.questionCount, { count: questionCount })
+    : interpolate(t.reveal.questionCountPlural, { count: questionCount });
+
   return (
     <div className="w-full max-w-5xl mx-auto animate-scale-in">
       <div className="relative">
@@ -31,7 +38,7 @@ export function GameReveal({ gameName, questionCount, onGuessCorrect, onGuessWro
           <div className="relative">
             <div className="flex items-center justify-center gap-3 md:gap-5 mb-6 md:mb-10">
               <Sparkles className="text-yellow-300 animate-bounce drop-shadow-2xl" size={36} fill="currentColor" />
-              <h2 className="text-4xl md:text-5xl font-black gradient-text text-center drop-shadow-2xl">MIND READ!</h2>
+              <h2 className="text-4xl md:text-5xl font-black gradient-text text-center drop-shadow-2xl">{t.reveal.title}</h2>
               <Sparkles
                 className="text-yellow-300 animate-bounce drop-shadow-2xl"
                 size={36}
@@ -42,7 +49,7 @@ export function GameReveal({ gameName, questionCount, onGuessCorrect, onGuessWro
 
             <div className="relative glass-effect rounded-xl md:rounded-2xl p-6 md:p-10 mb-8 md:mb-10 border-2 border-yellow-400/40 shadow-2xl">
               <p className="text-cyan-300 text-center text-base md:text-lg mb-4 md:mb-6 uppercase tracking-widest font-black">
-                O jogo era
+                {t.reveal.wasTheGame}
               </p>
 
               <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white text-center mb-6 md:mb-8 drop-shadow-2xl leading-tight px-2">
@@ -50,7 +57,7 @@ export function GameReveal({ gameName, questionCount, onGuessCorrect, onGuessWro
               </h1>
 
               <p className="text-center text-cyan-200/80 mb-6 md:mb-8 text-sm md:text-base font-semibold px-4">
-                Fiz {questionCount} {questionCount === 1 ? 'pergunta' : 'perguntas'} para descobrir!
+                {questionText}
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
@@ -68,7 +75,7 @@ export function GameReveal({ gameName, questionCount, onGuessCorrect, onGuessWro
                     <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
                       <Check size={24} className="md:w-7 md:h-7 stroke-[3]" />
                     </div>
-                    <span className="uppercase tracking-wider">SIM</span>
+                    <span className="uppercase tracking-wider">{t.reveal.yesButton}</span>
                   </div>
                 </button>
 
@@ -86,14 +93,14 @@ export function GameReveal({ gameName, questionCount, onGuessCorrect, onGuessWro
                     <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
                       <X size={24} className="md:w-7 md:h-7 stroke-[3]" />
                     </div>
-                    <span className="uppercase tracking-wider">NÃO</span>
+                    <span className="uppercase tracking-wider">{t.reveal.noButton}</span>
                   </div>
                 </button>
               </div>
             </div>
 
             <p className="text-center text-cyan-200/60 text-sm md:text-base font-bold px-4">
-              O Genie está sempre aprendendo e melhorando!
+              {t.reveal.footer}
             </p>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { Question } from '../types/game';
+import type { Language } from '../types/language';
 
 interface DecisionTreeNode {
   node_id: number;
@@ -12,11 +13,18 @@ export class GameEngine {
   private currentNodeId: number;
   private questionCount: number;
   private nodeCache: Map<number, DecisionTreeNode>;
+  private language: Language;
 
-  constructor() {
+  constructor(language: Language = 'en') {
     this.currentNodeId = 1;
     this.questionCount = 0;
     this.nodeCache = new Map();
+    this.language = language;
+  }
+
+  setLanguage(language: Language): void {
+    this.language = language;
+    this.nodeCache.clear();
   }
 
   async getNextQuestion(): Promise<Question | { type: 'game', name: string } | null> {
@@ -48,7 +56,7 @@ export class GameEngine {
     }
   }
 
-  async learnNewGame(correctGame: string, wrongGame: string, characteristic: string): Promise<void> {
+  async learnNewGame(correctGame: string, wrongGame: string, characteristic: string, translations: Record<Language, { game: string, characteristic: string }>): Promise<void> {
     const currentNode = this.currentNodeId;
     const leftChild = currentNode * 2;
     const rightChild = currentNode * 2 + 1;
@@ -56,14 +64,27 @@ export class GameEngine {
     await supabase
       .from('decision_tree')
       .insert([
-        { node_id: leftChild, text: correctGame, is_question: false },
+        { node_id: leftChild, text: translations.en.game, is_question: false },
         { node_id: rightChild, text: wrongGame, is_question: false }
       ]);
 
     await supabase
       .from('decision_tree')
-      .update({ text: characteristic, is_question: true })
+      .update({ text: translations.en.characteristic, is_question: true })
       .eq('node_id', currentNode);
+
+    const translationInserts = [];
+    for (const [lang, trans] of Object.entries(translations)) {
+      translationInserts.push(
+        { node_id: leftChild, language: lang, text: trans.game },
+        { node_id: rightChild, language: lang, text: wrongGame },
+        { node_id: currentNode, language: lang, text: trans.characteristic }
+      );
+    }
+
+    await supabase
+      .from('decision_tree_translations')
+      .insert(translationInserts);
 
     this.nodeCache.clear();
   }
@@ -71,16 +92,28 @@ export class GameEngine {
   private async fetchNode(nodeId: number): Promise<DecisionTreeNode | null> {
     let node = this.nodeCache.get(nodeId);
     if (!node) {
-      const { data, error } = await supabase
+      const { data: nodeData, error: nodeError } = await supabase
         .from('decision_tree')
         .select('*')
         .eq('node_id', nodeId)
         .maybeSingle();
 
-      if (error || !data) {
+      if (nodeError || !nodeData) {
         return null;
       }
-      node = data;
+
+      const { data: translationData } = await supabase
+        .from('decision_tree_translations')
+        .select('text')
+        .eq('node_id', nodeId)
+        .eq('language', this.language)
+        .maybeSingle();
+
+      node = {
+        ...nodeData,
+        text: translationData?.text || nodeData.text
+      };
+
       this.nodeCache.set(nodeId, node);
     }
     return node;

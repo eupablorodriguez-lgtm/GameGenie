@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { GameEngine } from './lib/gameEngine';
 import type { Question } from './types/game';
+import { useLanguage } from './contexts/LanguageContext';
+import { LanguageSelector } from './components/LanguageSelector';
+import type { Language } from './types/language';
 
 import { Genie } from './components/Genie';
 import { QuestionCard } from './components/QuestionCard';
@@ -9,6 +12,7 @@ import { GameReveal } from './components/GameReveal';
 import { LearnForm } from './components/LearnForm';
 
 function App() {
+  const { language, t } = useLanguage();
   const [phase, setPhase] = useState<'intro' | 'playing' | 'guessing' | 'reveal' | 'learning'>('intro');
   const [gameEngine, setGameEngine] = useState<GameEngine | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
@@ -16,8 +20,15 @@ function App() {
   const [startTime, setStartTime] = useState<number>(0);
 
   useEffect(() => {
-    setGameEngine(new GameEngine());
+    const engine = new GameEngine(language);
+    setGameEngine(engine);
   }, []);
+
+  useEffect(() => {
+    if (gameEngine) {
+      gameEngine.setLanguage(language);
+    }
+  }, [language, gameEngine]);
 
   const startGame = async () => {
     if (!gameEngine) return;
@@ -71,10 +82,10 @@ function App() {
     }
   };
 
-  const handleLearnSubmit = async (correctGame: string, characteristic: string) => {
+  const handleLearnSubmit = async (correctGame: string, characteristic: string, translations: Record<Language, { game: string, characteristic: string }>) => {
     if (!gameEngine || !guessedGame) return;
 
-    await gameEngine.learnNewGame(correctGame, guessedGame, characteristic);
+    await gameEngine.learnNewGame(correctGame, guessedGame, characteristic, translations);
 
     setPhase('intro');
     setGuessedGame(null);
@@ -101,19 +112,24 @@ function App() {
       <div className="relative z-10">
         <header className="py-4 md:py-5 px-4 border-b border-white/10 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-violet-500 blur-lg opacity-50"></div>
-                <Sparkles size={40} className="md:hidden relative text-cyan-300 drop-shadow-2xl" fill="currentColor" />
-                <Sparkles size={48} className="hidden md:block relative text-cyan-300 drop-shadow-2xl" fill="currentColor" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center justify-center gap-3 flex-1">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-violet-500 blur-lg opacity-50"></div>
+                  <Sparkles size={40} className="md:hidden relative text-cyan-300 drop-shadow-2xl" fill="currentColor" />
+                  <Sparkles size={48} className="hidden md:block relative text-cyan-300 drop-shadow-2xl" fill="currentColor" />
+                </div>
+                <div className="text-center">
+                  <h1 className="text-4xl md:text-6xl lg:text-7xl font-black gradient-text drop-shadow-2xl leading-tight">
+                    {t.header.title}
+                  </h1>
+                  <p className="text-cyan-300/90 text-xs md:text-sm font-black tracking-widest uppercase">
+                    {t.header.subtitle}
+                  </p>
+                </div>
               </div>
-              <div className="text-center">
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-black gradient-text drop-shadow-2xl leading-tight">
-                  GENIE GAME
-                </h1>
-                <p className="text-cyan-300/90 text-xs md:text-sm font-black tracking-widest uppercase">
-                  Ultimate Mind Reader
-                </p>
+              <div className="absolute right-4 top-4 md:relative md:right-0 md:top-0">
+                <LanguageSelector />
               </div>
             </div>
           </div>
@@ -131,25 +147,25 @@ function App() {
                   <div className="relative glass-effect rounded-2xl md:rounded-3xl p-6 md:p-10 border-2 border-white/20 shadow-2xl">
                     <div className="space-y-6 md:space-y-8">
                       <div className="text-center">
-                        <h2 className="text-3xl md:text-4xl font-black gradient-text mb-2">SUMMON THE GENIE</h2>
+                        <h2 className="text-3xl md:text-4xl font-black gradient-text mb-2">{t.intro.summon}</h2>
                         <p className="text-cyan-300/80 text-sm md:text-base font-bold tracking-wide">
-                          Challenge the most powerful mind reading AI
+                          {t.intro.challenge}
                         </p>
                       </div>
 
                       <ol className="space-y-4 md:space-y-5">
                         {[
                           {
-                            title: 'Think of ANY video game',
-                            desc: 'From classics to modern masterpieces',
+                            title: t.intro.step1Title,
+                            desc: t.intro.step1Desc,
                           },
                           {
-                            title: 'Answer the mystical questions',
-                            desc: 'Be honest with your responses',
+                            title: t.intro.step2Title,
+                            desc: t.intro.step2Desc,
                           },
                           {
-                            title: 'Watch the Genie read your mind!',
-                            desc: 'Flawless accuracy, every single time',
+                            title: t.intro.step3Title,
+                            desc: t.intro.step3Desc,
                           },
                         ].map((item, i) => (
                           <li key={i} className="flex gap-4 items-start group">
@@ -176,7 +192,7 @@ function App() {
 
                         <div className="relative flex items-center justify-center gap-2 md:gap-3">
                           <Sparkles size={22} fill="currentColor" className="md:w-7 md:h-7" />
-                          Awaken the Genie
+                          {t.intro.startButton}
                         </div>
                       </button>
                     </div>
@@ -216,7 +232,7 @@ function App() {
 
             {phase === 'learning' && guessedGame && (
               <div className="space-y-8 md:space-y-10">
-                <Genie state="idle" message="Teach me! I will never forget..." />
+                <Genie state="idle" message={t.genie.learn} />
                 <LearnForm
                   wrongGame={guessedGame}
                   onSubmit={handleLearnSubmit}
@@ -227,7 +243,7 @@ function App() {
         </main>
 
         <footer className="py-4 md:py-6 text-center text-cyan-300/50 text-xs md:text-sm border-t border-white/10">
-          <p className="font-bold tracking-widest uppercase">GENIE GAME • Undefeated Mind Reader</p>
+          <p className="font-bold tracking-widest uppercase">{t.footer.text}</p>
         </footer>
       </div>
     </div>

@@ -9,18 +9,18 @@ interface LearnFormProps {
   onSubmit: (correctGame: string, characteristic: string, translations: Record<Language, { game: string, characteristic: string }>) => void;
 }
 
-const SIMPLE_TRANSLATIONS: Record<Language, Record<string, string>> = {
-  en: {},
-  pt: {},
-  es: {},
-  zh: {},
-  fr: {},
-  de: {},
-  ar: {},
-  ja: {},
-  ru: {},
-  hi: {},
-  it: {},
+const LANG_CODE_MAP: Record<Language, string> = {
+  en: 'en',
+  pt: 'pt',
+  es: 'es',
+  zh: 'zh-CN',
+  fr: 'fr',
+  de: 'de',
+  ar: 'ar',
+  ja: 'ja',
+  ru: 'ru',
+  hi: 'hi',
+  it: 'it',
 };
 
 export function LearnForm({ wrongGame, onSubmit }: LearnFormProps) {
@@ -32,14 +32,56 @@ export function LearnForm({ wrongGame, onSubmit }: LearnFormProps) {
   const autoTranslate = async (game: string, char: string): Promise<Record<Language, { game: string, characteristic: string }>> => {
     const translations: Record<Language, { game: string, characteristic: string }> = {} as any;
 
-    for (const lang of LANGUAGES.map(l => l.code)) {
-      translations[lang] = {
-        game: game,
-        characteristic: char
-      };
-    }
+    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate`;
+    const headers = {
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+    };
 
-    return translations;
+    try {
+      const [gameResponse, charResponse] = await Promise.all([
+        fetch(apiUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            text: game,
+            sourceLang: LANG_CODE_MAP[language],
+            targetLangs: Object.values(LANG_CODE_MAP),
+          }),
+        }),
+        fetch(apiUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            text: char,
+            sourceLang: LANG_CODE_MAP[language],
+            targetLangs: Object.values(LANG_CODE_MAP),
+          }),
+        }),
+      ]);
+
+      const gameData = await gameResponse.json();
+      const charData = await charResponse.json();
+
+      for (const lang of LANGUAGES.map(l => l.code)) {
+        const googleLangCode = LANG_CODE_MAP[lang];
+        translations[lang] = {
+          game: gameData.translations[googleLangCode] || game,
+          characteristic: charData.translations[googleLangCode] || char,
+        };
+      }
+
+      return translations;
+    } catch (error) {
+      console.error('Translation error:', error);
+      for (const lang of LANGUAGES.map(l => l.code)) {
+        translations[lang] = {
+          game: game,
+          characteristic: char,
+        };
+      }
+      return translations;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -1,4 +1,5 @@
 import { Brain, Sparkles, Zap, Eye, Star as Stars } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface GenieProps {
   state: 'idle' | 'thinking' | 'guessing' | 'victory';
@@ -6,18 +7,35 @@ interface GenieProps {
 }
 
 export function Genie({ state, message }: GenieProps) {
-  const getDefaultMessage = (state: string): string => {
+  const { t } = useLanguage();
+
+  const getMessage = (): string => {
+    if (message) return message;
+
     switch (state) {
       case 'idle':
-        return 'I am the GENIE. Think of ANY game. I will read your mind with absolute precision.';
+        return t.genie.idle;
       case 'thinking':
-        return 'Your thoughts become clear... The patterns emerge... I see it all...';
+        return t.genie.thinking;
       case 'guessing':
-        return 'The answer crystallizes... Your mind reveals the truth!';
+        return t.genie.guessing;
       case 'victory':
-        return 'PERFECTION! I have read your thoughts flawlessly! The Genie NEVER fails!';
+        return t.genie.victory;
       default:
-        return 'Prepare to witness true mind reading...';
+        return t.genie.idle;
+    }
+  };
+
+  const getStatus = (): string => {
+    switch (state) {
+      case 'thinking':
+        return t.genie.analyzing;
+      case 'guessing':
+        return t.genie.revealing;
+      case 'victory':
+        return t.genie.predicted;
+      default:
+        return t.genie.ready;
     }
   };
 
@@ -85,7 +103,7 @@ export function Genie({ state, message }: GenieProps) {
                 <>
                   <Brain size={window.innerWidth < 768 ? 70 : 90} className="text-white drop-shadow-2xl animate-pulse" />
                   <div className="text-white text-xs md:text-sm font-black tracking-widest bg-black/30 px-3 py-1 rounded-full">
-                    ANALYZING...
+                    {getStatus()}
                   </div>
                 </>
               )}
@@ -93,7 +111,7 @@ export function Genie({ state, message }: GenieProps) {
                 <>
                   <Eye size={window.innerWidth < 768 ? 70 : 90} className="text-cyan-100 drop-shadow-2xl animate-pulse" />
                   <div className="text-white text-xs md:text-sm font-black tracking-widest bg-black/30 px-3 py-1 rounded-full">
-                    REVEALING...
+                    {getStatus()}
                   </div>
                 </>
               )}
@@ -101,14 +119,14 @@ export function Genie({ state, message }: GenieProps) {
                 <>
                   <Zap size={window.innerWidth < 768 ? 75 : 95} className="text-yellow-200 drop-shadow-2xl animate-bounce" fill="currentColor" />
                   <div className="text-white text-xs md:text-sm font-black tracking-widest bg-black/30 px-3 py-1 rounded-full">
-                    PREDICTED!
+                    {getStatus()}
                   </div>
                 </>
               )}
               {state === 'idle' && (
                 <>
                   <Stars size={window.innerWidth < 768 ? 70 : 90} className="text-white drop-shadow-2xl" />
-                  <div className="text-white/60 text-xs font-black tracking-widest">READY</div>
+                  <div className="text-white/60 text-xs font-black tracking-widest">{getStatus()}</div>
                 </>
               )}
             </div>
@@ -127,7 +145,7 @@ export function Genie({ state, message }: GenieProps) {
           <div className="absolute -top-3 md:-top-4 left-1/2 -translate-x-1/2 w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-blue-400 to-violet-500 rounded-full border-4 border-slate-900 shadow-lg"></div>
 
           <p className="relative text-white text-center text-base md:text-xl font-bold leading-relaxed">
-            {message || getDefaultMessage(state)}
+            {getMessage()}
           </p>
         </div>
       </div>

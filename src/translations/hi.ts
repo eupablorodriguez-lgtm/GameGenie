@@ -1,0 +1,56 @@
+import type { TranslationKeys } from './en';
+
+export const hi: TranslationKeys = {
+  header: {
+    title: 'GENIE GAME',
+    subtitle: 'परम मन पढ़ने वाला',
+  },
+  intro: {
+    summon: 'जिन्न को बुलाओ',
+    challenge: 'सबसे शक्तिशाली मन पढ़ने वाले AI को चुनौती दें',
+    step1Title: 'कोई भी वीडियो गेम सोचें',
+    step1Desc: 'क्लासिक से लेकर आधुनिक उत्कृष्ट कृतियों तक',
+    step2Title: 'रहस्यमय सवालों के जवाब दें',
+    step2Desc: 'अपने जवाबों में ईमानदार रहें',
+    step3Title: 'जिन्न को अपना मन पढ़ते देखें!',
+    step3Desc: 'निर्दोष सटीकता, हर बार',
+    startButton: 'जिन्न को जगाओ',
+  },
+  genie: {
+    idle: 'मैं जिन्न हूं। कोई भी गेम सोचें। मैं पूर्ण सटीकता के साथ आपका मन पढ़ूंगा।',
+    thinking: 'आपके विचार स्पष्ट हो रहे हैं... पैटर्न उभर रहे हैं... मैं सब कुछ देख रहा हूं...',
+    guessing: 'जवाब स्पष्ट हो रहा है... आपका मन सच्चाई प्रकट कर रहा है!',
+    victory: 'पूर्णता! मैंने आपके विचारों को पूरी तरह से पढ़ लिया! जिन्न कभी असफल नहीं होता!',
+    learn: 'मुझे सिखाओ! मैं कभी नहीं भूलूंगा...',
+    ready: 'तैयार',
+    analyzing: 'विश्लेषण कर रहा है...',
+    revealing: 'प्रकट कर रहा है...',
+    predicted: 'भविष्यवाणी की!',
+  },
+  question: {
+    yes: 'हाँ',
+    no: 'नहीं',
+  },
+  reveal: {
+    title: 'मन पढ़ा गया!',
+    wasTheGame: 'गेम था',
+    questionCount: 'मैंने इसे जानने के लिए {{count}} सवाल पूछा!',
+    questionCountPlural: 'मैंने इसे जानने के लिए {{count}} सवाल पूछे!',
+    yesButton: 'हाँ',
+    noButton: 'नहीं',
+    footer: 'जिन्न हमेशा सीख रहा है और सुधार कर रहा है!',
+  },
+  learn: {
+    title: 'मुझे सिखाओ!',
+    gameLabel: 'आप किस गेम के बारे में सोच रहे थे?',
+    gamePlaceholder: 'गेम का नाम दर्ज करें...',
+    characteristicLabel: '{{correctGame}} में क्या है जो {{wrongGame}} में नहीं है?',
+    characteristicLabelEmpty: 'आपके गेम में क्या है जो {{wrongGame}} में नहीं है?',
+    characteristicPlaceholder: 'एक अनोखी विशेषता का वर्णन करें...',
+    submitButton: 'जिन्न को सिखाएं',
+    footer: 'जिन्न कभी नहीं भूलता! मुझे सिखाने के लिए धन्यवाद।',
+  },
+  footer: {
+    text: 'GENIE GAME • अपराजित मन पढ़ने वाला',
+  },
+};

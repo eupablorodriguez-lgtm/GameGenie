@@ -30,7 +30,7 @@ export function LearnForm({ wrongGame, onSubmit }: LearnFormProps) {
   const [isTranslating, setIsTranslating] = useState(false);
 
   const autoTranslate = async (game: string, char: string): Promise<Record<Language, { game: string, characteristic: string }>> => {
-    const translations: Record<Language, { game: string, characteristic: string }> = {} as any;
+    const translations: Record<Language, { game: string, characteristic: string }> = {} as Record<Language, { game: string, characteristic: string }>;
 
     const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/translate`;
     const headers = {
@@ -66,48 +66,40 @@ export function LearnForm({ wrongGame, onSubmit }: LearnFormProps) {
       for (const lang of LANGUAGES.map(l => l.code)) {
         const googleLangCode = LANG_CODE_MAP[lang];
         translations[lang] = {
-          game: gameData.translations?.[googleLangCode] || game,
-          characteristic: charData.translations?.[googleLangCode] || char,
+          game: gameData.translations[googleLangCode] || game,
+          characteristic: charData.translations[googleLangCode] || char,
         };
       }
 
       return translations;
     } catch (error) {
       console.error('Translation error:', error);
-
       for (const lang of LANGUAGES.map(l => l.code)) {
         translations[lang] = {
           game: game,
           characteristic: char,
         };
       }
-
       return translations;
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (correctGame.trim() && characteristic.trim()) {
       setIsTranslating(true);
-
       try {
         const translations = await autoTranslate(correctGame.trim(), characteristic.trim());
-
         onSubmit(correctGame.trim(), characteristic.trim(), translations);
       } catch (error) {
         console.error('Translation error:', error);
-
-        const fallback: Record<Language, { game: string, characteristic: string }> = {} as any;
-
+        const fallback: Record<Language, { game: string, characteristic: string }> = {} as Record<Language, { game: string, characteristic: string }>;
         for (const lang of LANGUAGES.map(l => l.code)) {
           fallback[lang] = {
             game: correctGame.trim(),
-            characteristic: characteristic.trim(),
+            characteristic: characteristic.trim()
           };
         }
-
         onSubmit(correctGame.trim(), characteristic.trim(), fallback);
       } finally {
         setIsTranslating(false);
@@ -157,7 +149,6 @@ export function LearnForm({ wrongGame, onSubmit }: LearnFormProps) {
               <p className="text-white/40 text-xs md:text-sm font-semibold mb-3">
                 {t.learn.characteristicHint}
               </p>
-
               <textarea
                 value={characteristic}
                 onChange={(e) => setCharacteristic(e.target.value)}
@@ -173,31 +164,24 @@ export function LearnForm({ wrongGame, onSubmit }: LearnFormProps) {
                   <p className="text-white/50 text-xs uppercase tracking-widest font-black mb-3">
                     {t.learn.previewLabel}
                   </p>
-
                   <p className="text-white font-black text-base md:text-lg mb-4 leading-snug">
                     {characteristic.trim()}
                   </p>
-
                   <div className="flex flex-col sm:flex-row gap-3">
                     <div className="flex items-center gap-2 flex-1 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2">
                       <div className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex-shrink-0">
                         <Check size={14} className="text-emerald-300 stroke-[3]" />
                       </div>
-                      <span className="text-emerald-300 font-black text-xs uppercase tracking-wider mr-1">
-                        {t.question.yes}
-                      </span>
+                      <span className="text-emerald-300 font-black text-xs uppercase tracking-wider mr-1">{t.question.yes}</span>
                       <span className="text-white/80 font-bold text-sm truncate">
                         {correctGame || '?'}
                       </span>
                     </div>
-
                     <div className="flex items-center gap-2 flex-1 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
                       <div className="flex items-center justify-center w-7 h-7 rounded-full bg-rose-500/20 border border-rose-500/40 flex-shrink-0">
                         <X size={14} className="text-rose-300 stroke-[3]" />
                       </div>
-                      <span className="text-rose-300 font-black text-xs uppercase tracking-wider mr-1">
-                        {t.question.no}
-                      </span>
+                      <span className="text-rose-300 font-black text-xs uppercase tracking-wider mr-1">{t.question.no}</span>
                       <span className="text-white/80 font-bold text-sm truncate">
                         {wrongGame}
                       </span>
@@ -212,15 +196,18 @@ export function LearnForm({ wrongGame, onSubmit }: LearnFormProps) {
               disabled={isTranslating}
               className="w-full group relative overflow-hidden bg-gradient-to-r from-blue-500 via-violet-500 to-fuchsia-500 hover:from-blue-400 hover:via-violet-400 hover:to-fuchsia-400 text-white rounded-xl md:rounded-2xl py-5 md:py-6 px-8 font-black text-lg md:text-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl active:scale-95 uppercase tracking-wider shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
+              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/60 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+
               <div className="relative flex items-center justify-center gap-2 md:gap-3">
                 {isTranslating ? (
                   <>
-                    <Loader2 size={22} className="animate-spin" />
+                    <Loader2 size={22} className="md:w-6 md:h-6 animate-spin" />
                     <span>{t.learn.translating}</span>
                   </>
                 ) : (
                   <>
-                    <Send size={22} />
+                    <Send size={22} className="md:w-6 md:h-6" />
                     {t.learn.submitButton}
                   </>
                 )}
@@ -236,3 +223,4 @@ export function LearnForm({ wrongGame, onSubmit }: LearnFormProps) {
     </div>
   );
 }
+
